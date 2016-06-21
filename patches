@@ -1,0 +1,237 @@
+From 8e011a8dbfce69376b09a5159199937bdd8608f8 Mon Sep 17 00:00:00 2001
+From: Alexandre Poirot <poirot.alex@gmail.com>
+Date: Sat, 18 Jun 2016 04:31:09 -0700
+Subject: [PATCH 1/6] Various fixes to improve planula experience: fix support
+ of about and non-e10s pages, fix close button, fix default size.
+
+---
+ browsers/browserhtml-old/css/theme.css                   | 4 +++-
+ browsers/browserhtml-old/index.html                      | 6 ++++++
+ browsers/browserhtml-old/src/browser/navigation-panel.js | 2 +-
+ browsers/browserhtml-old/src/browser/util/url.js         | 2 +-
+ browsers/browserhtml-old/src/browser/web-viewer.js       | 3 ++-
+ 5 files changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/browsers/browserhtml-old/css/theme.css b/browsers/browserhtml-old/css/theme.css
+index 46c1d7f..ece0426 100644
+--- a/browsers/browserhtml-old/css/theme.css
++++ b/browsers/browserhtml-old/css/theme.css
+@@ -66,10 +66,12 @@ main * {
+   display: flex;
+ }
+ 
++/*
++I don't know why it is usefull but it show unexpected scollbars on planula
+ main.scrollable {
+   overflow-y: scroll;
+ }
+-
++*/
+ tab-iframe {
+   flex-grow: 1;
+   flex-shrink: 0;
+diff --git a/browsers/browserhtml-old/index.html b/browsers/browserhtml-old/index.html
+index 0cb2d31..2a46960 100644
+--- a/browsers/browserhtml-old/index.html
++++ b/browsers/browserhtml-old/index.html
+@@ -27,6 +27,12 @@
+     <!-- All further JS code is loaded from javascript -->
+     <script data-main='./main' src='node_modules/requirejs/require.js'
+             type='text/javascript' defer='defer'></script>
++    <script>
++      // Fix default window size on planula
++      // resizeTo doesn't work
++      document.documentElement.setAttribute('width', screen.availWidth * 0.9);
++      document.documentElement.setAttribute('height', screen.availHeight * 0.9);
++    </script>
+   </head>
+   <body>
+     <!-- We need to render something, otherwise osx freaks out -->
+diff --git a/browsers/browserhtml-old/src/browser/navigation-panel.js b/browsers/browserhtml-old/src/browser/navigation-panel.js
+index 3fe9c18..64cfd21 100644
+--- a/browsers/browserhtml-old/src/browser/navigation-panel.js
++++ b/browsers/browserhtml-old/src/browser/navigation-panel.js
+@@ -30,7 +30,7 @@ define((require, exports, module) => {
+                style: theme.windowCloseButton,
+                title: 'close',
+                key: 'close',
+-               onClick: event => sendEventToChrome('shutdown-application')
++               onClick: event => window.close()
+       }),
+       DOM.div({className: 'windowctrl win-min-button',
+                style: theme.windowMinButton,
+diff --git a/browsers/browserhtml-old/src/browser/util/url.js b/browsers/browserhtml-old/src/browser/util/url.js
+index 8829a38..e5c0c03 100644
+--- a/browsers/browserhtml-old/src/browser/util/url.js
++++ b/browsers/browserhtml-old/src/browser/util/url.js
+@@ -65,7 +65,7 @@ define(function() {
+       // for cases, pure string
+       var case2Reg = /[\?\.\s\:]/;
+       // for cases, data:uri
+-      var case3Reg = /^(data\:)/;
++      var case3Reg = /^(about|browserui|data|view-source\:)/;
+       // for cases, only scheme but no domain provided
+       var case4Reg = /^\w+\:\/*$/;
+       var str = input.trim();
+diff --git a/browsers/browserhtml-old/src/browser/web-viewer.js b/browsers/browserhtml-old/src/browser/web-viewer.js
+index 1146459..2b96c58 100644
+--- a/browsers/browserhtml-old/src/browser/web-viewer.js
++++ b/browsers/browserhtml-old/src/browser/web-viewer.js
+@@ -33,7 +33,8 @@ define((require, exports, module) => {
+       }),
+       key: webViewerCursor.get('id'),
+       isBrowser: true,
+-      isRemote: true,
++      isRemote: false, // Disable remote to support about pages
++                       // But we should just compute remoteness based on the URI
+       allowFullScreen: true,
+ 
+       isVisible: isActive(webViewerCursor) ||
+-- 
+2.8.2
+
+
+From 9867ea91b584099566e27502cce9fd72de0db353 Mon Sep 17 00:00:00 2001
+From: Alexandre Poirot <poirot.alex@gmail.com>
+Date: Mon, 20 Jun 2016 07:53:43 -0700
+Subject: [PATCH 2/6] Fix support of transparent windows on all browsers.
+
+---
+ browsers/browserhtml-old/css/theme.css | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/browsers/browserhtml-old/css/theme.css b/browsers/browserhtml-old/css/theme.css
+index ece0426..7c897b0 100644
+--- a/browsers/browserhtml-old/css/theme.css
++++ b/browsers/browserhtml-old/css/theme.css
+@@ -66,6 +66,9 @@ main * {
+   display: flex;
+ }
+ 
++html {
++  background: white;
++}
+ /*
+ I don't know why it is usefull but it show unexpected scollbars on planula
+ main.scrollable {
+-- 
+2.8.2
+
+
+From 5657efa51a398fd67a9502d0256d4a0d74546dac Mon Sep 17 00:00:00 2001
+From: Alexandre Poirot <poirot.alex@gmail.com>
+Date: Tue, 21 Jun 2016 04:09:58 -0700
+Subject: [PATCH 3/6] Make browserhtml-old use transparent windows.
+
+---
+ browsers/browserhtml-old/css/theme.css | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/browsers/browserhtml-old/css/theme.css b/browsers/browserhtml-old/css/theme.css
+index 7c897b0..ece0426 100644
+--- a/browsers/browserhtml-old/css/theme.css
++++ b/browsers/browserhtml-old/css/theme.css
+@@ -66,9 +66,6 @@ main * {
+   display: flex;
+ }
+ 
+-html {
+-  background: white;
+-}
+ /*
+ I don't know why it is usefull but it show unexpected scollbars on planula
+ main.scrollable {
+-- 
+2.8.2
+
+
+From e8b54186b4c25da661d82e6ec92d9d33e1901bac Mon Sep 17 00:00:00 2001
+From: Alexandre Poirot <poirot.alex@gmail.com>
+Date: Tue, 21 Jun 2016 04:27:53 -0700
+Subject: [PATCH 4/6] Set tabsintitle bar for browserhtml-old
+
+---
+ browsers/browserhtml-old/index.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/browsers/browserhtml-old/index.html b/browsers/browserhtml-old/index.html
+index 2a46960..d9b7144 100644
+--- a/browsers/browserhtml-old/index.html
++++ b/browsers/browserhtml-old/index.html
+@@ -1,5 +1,5 @@
+ <!DOCTYPE html>
+-<html>
++<html tabsintitlebar="true" chromemargin="0,2,2,2">
+ 
+   <!--
+ 
+-- 
+2.8.2
+
+
+From 4ca3bfb539bd97a52201c759513c1d93fe75edca Mon Sep 17 00:00:00 2001
+From: Vivien Nicolas <vnicolas@mozilla.com>
+Date: Tue, 21 Jun 2016 13:29:56 +0200
+Subject: [PATCH 5/6] Add some platform patches to allow
+ window[close|minimize|maximize|restore|...]
+
+---
+ browsers/browserhtml-old/src/browser/navigation-panel.js | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/browsers/browserhtml-old/src/browser/navigation-panel.js b/browsers/browserhtml-old/src/browser/navigation-panel.js
+index 64cfd21..3bbf7fe 100644
+--- a/browsers/browserhtml-old/src/browser/navigation-panel.js
++++ b/browsers/browserhtml-old/src/browser/navigation-panel.js
+@@ -36,13 +36,13 @@ define((require, exports, module) => {
+                style: theme.windowMinButton,
+                title: 'minimize',
+                key: 'minimize',
+-               onClick: event => sendEventToChrome('minimize-native-window')
++               onClick: event => window.minimize()
+       }),
+       DOM.div({className: 'windowctrl win-max-button',
+                style: theme.windowMaxButton,
+                title: 'maximize',
+                key: 'maximize',
+-               onClick: event => sendEventToChrome('toggle-fullscreen-native-window')
++               onClick: event => window.maximize()
+       })
+     ]));
+ 
+-- 
+2.8.2
+
+
+From 27ecc2852467bd354b07117b11170d9c91e4957a Mon Sep 17 00:00:00 2001
+From: Alexandre Poirot <poirot.alex@gmail.com>
+Date: Tue, 21 Jun 2016 06:08:41 -0700
+Subject: [PATCH 6/6] Fix maximize button when already maximied on
+ browserhtml-old
+
+---
+ browsers/browserhtml-old/src/browser/navigation-panel.js | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/browsers/browserhtml-old/src/browser/navigation-panel.js b/browsers/browserhtml-old/src/browser/navigation-panel.js
+index 3bbf7fe..cf487e6 100644
+--- a/browsers/browserhtml-old/src/browser/navigation-panel.js
++++ b/browsers/browserhtml-old/src/browser/navigation-panel.js
+@@ -42,7 +42,13 @@ define((require, exports, module) => {
+                style: theme.windowMaxButton,
+                title: 'maximize',
+                key: 'maximize',
+-               onClick: event => window.maximize()
++               onClick: event => {
++                 if (window.windowState == window.STATE_MAXIMIZED) {
++                   window.restore();
++                 } else {
++                   window.maximize();
++                 }
++               }
+       })
+     ]));
+ 
+-- 
+2.8.2
+
